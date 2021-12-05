@@ -1,5 +1,4 @@
 use std::fs;
-use array2d::Array2D;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Rating {
@@ -29,18 +28,18 @@ pub fn day3(args: &[String]) -> i32 {
 }
 
 fn part1(entries: &Vec<Vec<u32>>) -> u32 {
-    let e = Array2D::from_rows(&entries);
-    let gamma = e.as_columns().into_iter()
-        .map(|col| col.iter().sum::<u32>())
-        .map(|s| s > (e.num_rows() as u32) - s) 
+    let (rows, cols) = (entries.len() as u32, entries[0].len() as u32);
+    let gamma = (0..cols as usize)
+        .map(|col| entries.iter().map(|r| r[col]).sum::<u32>())
+        .map(|s| s > rows - s) 
         .fold(0, |acc, bit| (acc << 1) | (bit as u32));
-    let epsilon = (u32::pow(2, e.num_columns() as u32) - 1) ^ gamma;
+    let epsilon = (u32::pow(2, cols) - 1) ^ gamma;
 
     gamma * epsilon
 }
 
-fn value_counts(entries: &Vec<Vec<u32>>, bit: usize) -> (u32, u32) {
-    let ones = entries.iter().map(|e| e[bit]).sum::<u32>();
+fn value_counts(entries: &Vec<Vec<u32>>, col: usize) -> (u32, u32) {
+    let ones = entries.iter().map(|r| r[col]).sum::<u32>();
     (entries.len() as u32 - ones, ones)
 }
 
