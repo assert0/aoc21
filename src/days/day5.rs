@@ -16,12 +16,10 @@ impl VentLine {
         }
         // Parse line (ex: "242,601 -> 242,18")
         let caps = RE.captures(line).unwrap();
-        let x1 = caps.get(1).unwrap().as_str().parse::<usize>().unwrap();
-        let y1 = caps.get(2).unwrap().as_str().parse::<usize>().unwrap();
-        let x2 = caps.get(3).unwrap().as_str().parse::<usize>().unwrap();
-        let y2 = caps.get(4).unwrap().as_str().parse::<usize>().unwrap();
+        let vals: Vec<usize> = caps.iter().skip(1).take(4)
+            .map(|v| v.unwrap().as_str().parse::<usize>().unwrap()).collect();
 
-        VentLine::new((x1, y1), (x2, y2))
+        VentLine::new((vals[0], vals[1]), (vals[2], vals[3]))
     }
 
     pub fn new(start: (usize, usize), end: (usize, usize)) -> VentLine {
