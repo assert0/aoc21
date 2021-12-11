@@ -1,52 +1,82 @@
 use std::fs;
 use itertools::iproduct;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HeightMap {
+    map: Vec<Vec<u32>>
+}
+
 lazy_static! {
     static ref ADJ: Vec<(isize, isize)> = vec![
         (0, 1), (0, -1), (1, 0), (-1, 0)
     ];
 }
 
-pub fn adjacent(map: &Vec<Vec<u32>>, y: usize, x: usize) -> Vec<u32> {
-    let (my, mx) = (map.len() as isize, map[0].len() as isize); 
-    ADJ.iter().map(|(dy, dx)| (y as isize + dy, x as isize + dx))
-        .filter(|&(y,  x)| y >= 0 && x >= 0 && y < my && x < mx).map(|(y ,x)| map[y as usize][x as usize])
-        .collect()
-}
+impl HeightMap {
 
-pub fn low_points(map: &Vec<Vec<u32>>) -> Vec<(usize, usize)> {
-    let mut l = vec![];
-    for (y, x) in iproduct!(0..map.len(), 0..map[0].len()) {
-        if adjacent(map, y, x).iter().all(|a| a > &map[y][x]) {
-            l.push((y, x));
+    pub fn new(map: Vec<Vec<u32>>) -> HeightMap {        
+        HeightMap { map }
+    }
+
+    pub fn parse(input :&str) -> HeightMap {
+        HeightMap::new(input.lines()
+            .map(|l| l.chars().map(|c| c.to_digit(10).unwrap()).collect()).collect())
+    }
+
+    pub fn size(&self) -> (usize, usize) {
+        (self.map.len(), self.map[0].len())
+    }
+
+    pub fn value(&self, y: isize, x: isize) -> Option<u32> {
+        let (my, mx) = self.size();
+        if y >= 0 && x >= 0 && y < my as isize && x < mx as isize {
+            return Some(self.map[y as usize][x as usize]);
         }
+        None
     }
-    l
-}
 
-pub fn part1(map: &Vec<Vec<u32>>) -> u32 {
-    low_points(&map).iter().map(|&(y, x)| map[y][x] + 1).sum()
-}
-
-pub fn basin_size(map: &Vec<Vec<u32>>, used: &mut Vec<Vec<bool>>, y: usize, x: usize) -> usize {
-    if map[y][x] == 9 || used[y][x] {
-        return 0;
+    pub fn adjacent(&self, y: isize, x: isize) -> Vec<u32> {
+        ADJ.iter().map(|(dy, dx)| (y + dy, x + dx))
+            .filter_map(|(y, x)| self.value(y, x))
+            .collect()
     }
-    used[y][x] = true;
-    let (my, mx) = (map.len() as isize, map[0].len() as isize);
-    ADJ.iter().map(|(dy, dx)| (y as isize + dy, x as isize + dx))
-        .filter(|&(y,  x)| y >= 0 && x >= 0 && y < my && x < mx)
-        .map(|(y, x)| basin_size(map, used, y as usize, x as usize)).sum::<usize>() + 1
-    
+
+    pub fn low_points(&self) -> Vec<(isize, isize)> {
+        let mut l = vec![];
+        let s = self.size();
+        for (y, x) in iproduct!(0..s.0, 0..s.1) {
+            if self.adjacent(y as isize, x as isize).iter().all(|a| a > &self.map[y][x]) {
+                l.push((y as isize, x as isize));
+            }
+        }
+        l
+    }
+
+    pub fn basin_size(&self, used: &mut Vec<Vec<bool>>, y: isize, x: isize) -> usize {
+        let (uy, ux) = (y as usize, x as usize);
+        if self.map[uy][ux] == 9 || used[uy][ux] {
+            return 0;
+        }
+        used[uy][ux] = true;
+        ADJ.iter().map(|(dy, dx)| (y + dy, x + dx))
+            .filter(|&(y, x)| self.value(y, x).is_some())
+            .map(|(y, x)| self.basin_size(used, y, x)).sum::<usize>() + 1   
+    }
+
 }
 
-pub fn part2(map: &Vec<Vec<u32>>) -> usize {
-    let mut used = vec![vec![false; map[0].len()]; map.len()];
-    let mut sizes: Vec<usize> = low_points(&map).iter()
-        .map(|&(y, x)| basin_size(map, &mut used, y, x)).collect();
+
+pub fn part1(hm: &HeightMap) -> u32 {
+    hm.low_points().iter().map(|&(y, x)| hm.value(y, x).unwrap() + 1).sum()
+}
+
+pub fn part2(hm: &HeightMap) -> usize {
+    let (y, x) = hm.size();
+    let mut used = vec![vec![false; x]; y];
+    let mut sizes: Vec<usize> = hm.low_points().iter()
+        .map(|&(y, x)| hm.basin_size(&mut used, y, x)).collect();
     sizes.sort();
     sizes.iter().rev().take(3).product()
-
 }
 
 pub fn day9(args: &[String]) -> i32 {
@@ -60,11 +90,10 @@ pub fn day9(args: &[String]) -> i32 {
     let contents = fs::read_to_string(filename)
         .expect("Something went wrong reading the file");
 
-    let map: Vec<Vec<u32>> = contents.lines()
-        .map(|l| l.chars().map(|c| c.to_digit(10).unwrap()).collect()).collect();
+    let hm = HeightMap::parse(&contents);
 
-    println!("Part 1: {}", part1(&map));
-    println!("Part 2: {}", part2(&map));
+    println!("Part 1: {}", part1(&hm));
+    println!("Part 2: {}", part2(&hm));
     
     0
 }
