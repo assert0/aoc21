@@ -6,7 +6,6 @@ use regex::Regex;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Paper {
     marked: Vec<(usize, usize)>,
-    size: (usize, usize),
 }
 
 impl Paper {
@@ -16,18 +15,16 @@ impl Paper {
             .map(|l| l.split(",")
                 .map(|n| n.parse().unwrap()).next_tuple().unwrap()
             ).collect();
-        let xsize = marked.iter().map(|p| p.0).max().unwrap() + 1;
-        let ysize = marked.iter().map(|p| p.1).max().unwrap() + 1;
-        let size = (xsize, ysize);
-        Paper { marked, size }
+        Paper { marked }
     }
 
-    pub fn new(marked: Vec<(usize, usize)>, size: (usize, usize)) -> Paper {
-        Paper { marked, size }
+    pub fn new(marked: Vec<(usize, usize)>) -> Paper {
+        Paper { marked }
     }
 
     pub fn map(&self) -> Vec<Vec<bool>> {
-        let (xsize, ysize) = self.size;
+        let xsize = self.marked.iter().map(|p| p.0).max().unwrap() + 1;
+        let ysize = self.marked.iter().map(|p| p.1).max().unwrap() + 1;
         let mut map = vec![vec![false; xsize]; ysize];
         for m in &self.marked {
             map[m.1][m.0] = true
@@ -83,7 +80,7 @@ pub fn fold_x(marked: &Vec<(usize, usize)>, fold: usize) -> Vec<(usize, usize)> 
         } else {
             (fold * 2 - m.0, m.1)
         }
-    ).collect()
+    ).unique().collect()
 }
 
 pub fn fold_y(marked: &Vec<(usize, usize)>, fold: usize) -> Vec<(usize, usize)> {
@@ -93,13 +90,13 @@ pub fn fold_y(marked: &Vec<(usize, usize)>, fold: usize) -> Vec<(usize, usize)> 
         } else {
             (m.0, fold * 2 - m.1)
         }
-    ).collect()
+    ).unique().collect()
 }
 
 pub fn fold_paper(paper: &Paper, fold: &Fold) -> Paper {
     match fold.axis.as_str() {
-        "x" => Paper::new(fold_x(&paper.marked, fold.offset), (fold.offset, paper.size.1)),
-        "y" => Paper::new(fold_y(&paper.marked, fold.offset), (paper.size.0, fold.offset)),
+        "x" => Paper::new(fold_x(&paper.marked, fold.offset)),
+        "y" => Paper::new(fold_y(&paper.marked, fold.offset)),
         _ => panic!("Invalid axis")
     }
 }
@@ -121,7 +118,7 @@ pub fn day13(args: &[String]) -> i32 {
     
     for (i, f) in folds.iter().enumerate() {
         if i == 1 {
-            println!("Part 1: {}", paper.map().iter().flatten().filter(|&p| *p).count());
+            println!("Part 1: {}", paper.marked.len());
         }
         paper = fold_paper(&paper, f);
     }
