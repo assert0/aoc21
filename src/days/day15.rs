@@ -76,7 +76,7 @@ pub fn shortest_path(map: &Vec<Vec<u32>>) -> Option<u32> {
             let adj_risk = get_value(&map, adj.0, adj.1);
             if adj_risk == u32::MAX { continue; }
             let next = State { risk: risk + adj_risk, position: (adj.0 as usize, adj.1 as usize) };
-            //println!("{:?}", next);
+
             // If so, add it to the frontier and continue
             if next.risk < lowestrisk[next.position.0][next.position.1] {
                 heap.push(next);
